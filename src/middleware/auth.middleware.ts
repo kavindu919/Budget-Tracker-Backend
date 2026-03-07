@@ -34,7 +34,7 @@ export const authMiddleware = async (
         .json({ success: false, message: "Not authenticated" });
     }
 
-    const jwtSecret = process.env.JWT_SECRET;
+    const jwtSecret = process.env.JWT_ACCESS_SECRET;
     if (!jwtSecret) {
       console.error("JWT_SECRET is not defined in environment variables");
       return res.status(500).json({

@@ -46,6 +46,13 @@ export const register = async (req: Request, res: Response) => {
       },
     });
 
+    res.cookie("accessToken", access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+    });
+
     res.cookie("refreshToken", refresh_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -60,9 +67,6 @@ export const register = async (req: Request, res: Response) => {
     return res.status(201).json({
       success: true,
       data: userData,
-      tokens: {
-        access_token: access_token,
-      },
       message: "Registration complete",
     });
   } catch (error) {
@@ -124,6 +128,14 @@ export const login = async (req: Request, res: Response) => {
       name: isUser.name,
       email: isUser.email,
     };
+
+    res.cookie("accessToken", access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+    });
+
     res.cookie("refreshToken", refresh_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -133,9 +145,6 @@ export const login = async (req: Request, res: Response) => {
     return res.status(200).json({
       success: true,
       data: userData,
-      tokens: {
-        access_token: access_token,
-      },
       message: "Login successful",
     });
   } catch (error) {
