@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String          @id @default(uuid()) @db.Uuid
+  email         String          @unique
+  password      String
+  name          String
+  transactions  Transactions[]
+  budgets       Budgets[]
+  categories    Categories[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  refreshTokens RefreshTokens[]
+}
+
+model Transactions {
+  id         String          @id @default(uuid()) @db.Uuid
+  title      String
+  amount     Decimal         @db.Decimal(10, 2)
+  type       TransactionType
+  date       DateTime
+  note       String?
+  userId     String          @db.Uuid
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String          @db.Uuid
+  category   Categories      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+model Budgets {
+  id         String       @id @default(uuid()) @db.Uuid
+  amount     Decimal      @db.Decimal(10, 2)
+  period     BudgetPeriod @default(monthly)
+  alertLimit Decimal?     @db.Decimal(10, 2)
+  userId     String       @db.Uuid
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String       @db.Uuid
+  category   Categories   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([userId, categoryId, period])
+}
+
+model Categories {
+  id           String         @id @default(uuid()) @db.Uuid
+  name         String
+  type         CategoryType
+  color        String?
+  userId       String         @db.Uuid
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  transactions Transactions[]
+  budgets      Budgets[]
+
+  @@unique([userId, name, type])
+}
+
+model RefreshTokens {
+  id        String    @id @default(uuid()) @db.Uuid
+  token     String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+enum BudgetPeriod {
+  daily
+  weekly
+  monthly
+  yearly
+}
+
+enum CategoryType {
+  income
+  expense
+}
