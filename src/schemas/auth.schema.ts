@@ -13,7 +13,7 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number.")
     .regex(/^\S+$/, "Password must not contain spaces."),
 
-  fullName: z
+  name: z
     .string()
     .min(2, "Full name must be at least 2 characters.")
     .max(100, "Full name must be less than 100 characters.")
@@ -27,12 +27,4 @@ export const loginSchema = z.object({
     .min(1, "Email is required."),
 
   password: z.string().min(1, "Password is required."),
-});
-
-export const refreshSchema = z.object({
-  refreshToken: z.string().min(1, "Refresh token is required."),
-});
-
-export const verifyEmailSchema = z.object({
-  token: z.string().min(1, "Verification token is required."),
 });

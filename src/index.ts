@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-
+import authRouter from "./routes/auth.routes";
 const app = express();
 const PORT = process.env.PORT ?? 3000;
 
@@ -23,6 +23,8 @@ app.get("/health", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+app.use("/api/auth", authRouter);
 
 app.listen(PORT, () => {
   console.log(`server runing on port ${PORT}`);
