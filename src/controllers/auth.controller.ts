@@ -284,3 +284,39 @@ export const logout = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getUserProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: user,
+      message: "Profile fetched successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong please try again",
+    });
+  }
+};
