@@ -14,7 +14,7 @@ declare global {
 }
 
 interface JwtPayload {
-  id: string;
+  sub: string;
   email: string;
   name: string;
   iat?: number;
@@ -46,7 +46,7 @@ export const authMiddleware = async (
     const decoded = jwt.verify(authToken, jwtSecret) as JwtPayload;
 
     req.user = {
-      id: decoded.id,
+      id: decoded.sub,
       name: decoded.name,
       email: decoded.email,
     };
