@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.routes";
 import categoryRouter from "./routes/category.routes";
 import transactionRouter from "./routes/transaction.route";
+import budgetRouter from "./routes/budget.route";
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
@@ -29,6 +30,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/category", categoryRouter);
 app.use("/api/transaction", transactionRouter);
+app.use("/api/budget", budgetRouter);
 
 app.listen(PORT, () => {
   console.log(`server runing on port ${PORT}`);
