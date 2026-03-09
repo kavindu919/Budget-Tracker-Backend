@@ -279,6 +279,7 @@ export const logout = async (req: Request, res: Response) => {
     }
 
     res.clearCookie("refreshToken");
+    res.clearCookie("accessToken");
 
     return res.status(200).json({
       success: true,
