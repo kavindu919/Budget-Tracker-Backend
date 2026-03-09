@@ -5,7 +5,14 @@ export const createBudgetSchema = z.object({
     .number({ message: "Amount is required" })
     .positive("Amount must be positive"),
   period: z.enum(["daily", "weekly", "monthly", "yearly"]).default("monthly"),
-  alertLimit: z.coerce.number().positive().optional(),
+  alertLimit: z
+    .union([
+      z.literal("").transform(() => undefined),
+      z.coerce.number().min(0, {
+        message: "Alert limit must be 0 or greater",
+      }),
+    ])
+    .optional(),
   categoryId: z.string().uuid("Invalid category ID"),
 });
 
