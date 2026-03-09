@@ -1,31 +1,46 @@
 import z from "zod";
 
-const createTransactionSchema = z.object({
+export const createTransactionSchema = z.object({
   title: z.string().min(1, "Title is required").max(100),
   amount: z.coerce.number().positive("Amount must be positive"),
   categoryId: z.string().uuid("Invalid category ID"),
   type: z.enum(["income", "expense"]),
-  date: z
-    .union([z.string().datetime(), z.date()])
-    .transform((val) => new Date(val)),
+  date: z.string().transform((val) => new Date(val).toISOString()),
   note: z.string().max(500).optional().nullable(),
 });
 
-const updateTransactionSchema = createTransactionSchema.partial();
+export const updateTransactionSchema = createTransactionSchema
+  .partial()
+  .extend({
+    id: z.string().uuid("Invalid transaction ID"),
+  });
 
-const filterSchema = z.object({
+export const filterSchema = z.object({
   startDate: z
-    .union([z.string().datetime(), z.date()])
-    .transform((val) => new Date(val))
-    .optional(),
+    .string()
+    .optional()
+    .transform((val) =>
+      val && val !== "" ? new Date(val).toISOString() : undefined,
+    ),
   endDate: z
-    .union([z.string().datetime(), z.date()])
-    .transform((val) => new Date(val))
+    .string()
+    .optional()
+    .transform((val) =>
+      val && val !== "" ? new Date(val).toISOString() : undefined,
+    ),
+  categoryId: z.string().uuid().or(z.literal("")).optional(),
+  type: z.enum(["income", "expense"]).or(z.literal("")).optional(),
+  search: z.string().optional(),
+  limit: z.string().optional().default("20"),
+  page: z.string().optional().default("1"),
+  sortBy: z
+    .enum(["date", "amount", "title"])
+    .or(z.literal(""))
+    .default("date")
     .optional(),
-  categoryId: z.string().uuid().optional(),
-  type: z.enum(["income", "expense"]).optional(),
-  limit: z.coerce.number().min(1).max(100).default(20),
-  offset: z.coerce.number().min(0).default(0),
-  sortBy: z.enum(["date", "amount", "title"]).default("date").optional(),
-  sortOrder: z.enum(["asc", "desc"]).default("desc").optional(),
+  sortOrder: z
+    .enum(["asc", "desc"])
+    .or(z.literal(""))
+    .default("desc")
+    .optional(),
 });
