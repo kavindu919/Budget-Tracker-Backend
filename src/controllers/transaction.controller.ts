@@ -217,6 +217,146 @@ export const deleteTransaction = async (req: Request, res: Response) => {
 
 export const getTransactionSummary = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+    );
+
+    const [incomeResult, expenseResult] = await Promise.all([
+      prisma.transactions.aggregate({
+        where: { userId, type: "income" },
+        _sum: { amount: true },
+      }),
+      prisma.transactions.aggregate({
+        where: { userId, type: "expense" },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const totalIncome = Number(incomeResult._sum.amount ?? 0);
+    const totalExpense = Number(expenseResult._sum.amount ?? 0);
+    const balance =
+      totalIncome - totalExpense > 0 ? totalIncome - totalExpense : 0;
+
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return {
+        label: date.toLocaleString("default", { month: "short" }),
+        start: new Date(date.getFullYear(), date.getMonth(), 1),
+        end: new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59),
+      };
+    });
+
+    const monthlyData = await Promise.all(
+      months.map(async (month) => {
+        const [inc, exp] = await Promise.all([
+          prisma.transactions.aggregate({
+            where: {
+              userId,
+              type: "income",
+              date: { gte: month.start, lte: month.end },
+            },
+            _sum: { amount: true },
+          }),
+          prisma.transactions.aggregate({
+            where: {
+              userId,
+              type: "expense",
+              date: { gte: month.start, lte: month.end },
+            },
+            _sum: { amount: true },
+          }),
+        ]);
+        return {
+          month: month.label,
+          income: Number(inc._sum.amount ?? 0),
+          expense: Number(exp._sum.amount ?? 0),
+        };
+      }),
+    );
+
+    const categoryExpenses = await prisma.transactions.groupBy({
+      by: ["categoryId"],
+      where: { userId, type: "expense" },
+      _sum: { amount: true },
+    });
+
+    const categoryDetails = await Promise.all(
+      categoryExpenses.map(async (item) => {
+        const category = await prisma.categories.findFirst({
+          where: { id: item.categoryId },
+          select: { name: true, color: true },
+        });
+        return {
+          name: category?.name ?? "Unknown",
+          color: category?.color ?? "#94a3b8",
+          value: Number(item._sum.amount ?? 0),
+        };
+      }),
+    );
+
+    const budgets = await prisma.budgets.findMany({
+      where: { userId },
+      include: { category: { select: { name: true, color: true } } },
+    });
+
+    const budgetVsActual = await Promise.all(
+      budgets.map(async (budget) => {
+        const spent = await prisma.transactions.aggregate({
+          where: {
+            userId,
+            categoryId: budget.categoryId,
+            type: "expense",
+            date: { gte: startOfMonth, lte: endOfMonth },
+          },
+          _sum: { amount: true },
+        });
+        const spentAmount = Number(spent._sum.amount ?? 0);
+        return {
+          name: budget.category.name,
+          color: budget.category.color ?? "#94a3b8",
+          budget: Number(budget.amount),
+          spent: spentAmount,
+        };
+      }),
+    );
+
+    const recentTransactions = await prisma.transactions.findMany({
+      where: { userId },
+      include: { category: { select: { name: true, color: true } } },
+      orderBy: { date: "desc" },
+      take: 10,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalIncome,
+        totalExpense,
+        balance,
+        monthlyData,
+        categoryExpenses: categoryDetails,
+        budgetVsActual,
+        recentTransactions: recentTransactions.map((t) => ({
+          ...t,
+          amount: Number(t.amount),
+        })),
+      },
+    });
   } catch (error) {
     return res.status(500).json({
       success: false,
