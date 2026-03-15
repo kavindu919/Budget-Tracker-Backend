@@ -53,6 +53,12 @@ export const authMiddleware = async (
 
     next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({
+        success: false,
+        message: "Token has expired",
+      });
+    }
     if (error instanceof jwt.JsonWebTokenError) {
       return res.status(403).json({
         success: false,
@@ -60,12 +66,6 @@ export const authMiddleware = async (
       });
     }
 
-    if (error instanceof jwt.TokenExpiredError) {
-      return res.status(403).json({
-        success: false,
-        message: "Token has expired",
-      });
-    }
     console.error("Authentication error:", error);
     return res.status(500).json({
       success: false,
