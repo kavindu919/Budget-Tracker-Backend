@@ -33,7 +33,7 @@ export const register = async (req: Request, res: Response) => {
       },
     });
 
-    const access_token = signAccessToken(user.id, user.email);
+    const access_token = signAccessToken(user.id, user.email, user.name);
     const refresh_token = signRefreshToken(user.id, user.email);
     const hashed_refresh_token = hashToken(refresh_token);
     const refresh_token_expire = refreshTokenExpiry();
@@ -111,7 +111,7 @@ export const login = async (req: Request, res: Response) => {
         message: "Invalid credentials",
       });
     }
-    const access_token = signAccessToken(isUser.id, isUser.email);
+    const access_token = signAccessToken(isUser.id, isUser.email, isUser.name);
     const refresh_token = signRefreshToken(isUser.id, isUser.email);
     const hashed_refresh_token = hashToken(refresh_token);
     const refresh_token_expire = refreshTokenExpiry();
@@ -211,7 +211,22 @@ export const refreshTokens = async (req: Request, res: Response) => {
       where: { token: hashedToken },
     });
 
-    const access_token = signAccessToken(storedToken.userId, payload.email);
+    const user = await prisma.user.findUnique({
+      where: { id: storedToken.userId },
+    });
+
+    if (!user) {
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong please try again",
+      });
+    }
+
+    const access_token = signAccessToken(
+      storedToken.userId,
+      payload.email,
+      user.name,
+    );
     const refresh_token = signRefreshToken(storedToken.userId, payload.email);
 
     const newHashedToken = hashToken(refresh_token);
@@ -236,17 +251,6 @@ export const refreshTokens = async (req: Request, res: Response) => {
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-
-    const user = await prisma.user.findUnique({
-      where: { id: storedToken.userId },
-    });
-
-    if (!user) {
-      return res.status(500).json({
-        success: false,
-        message: "Something went wrong please try again",
-      });
-    }
 
     return res.status(200).json({
       success: true,
